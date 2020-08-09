@@ -1,0 +1,17 @@
+<component name="libraryTable">
+  <library name="libs">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/libs/jackson-core-2.1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/hawtbuf-1.11.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/hawtdispatch-1.22.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/jackson-annotations-2.11.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/RSNetDevice-2.2.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/jackson-databind-2.1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/mqtt-client-1.16.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/hawtdispatch-transport-1.22.jar!/" />
+      <root url="jar://$PROJECT_DIR$/libs/commons-cli-1.4.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

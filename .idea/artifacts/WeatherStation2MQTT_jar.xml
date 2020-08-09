@@ -1,0 +1,17 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="WeatherStation2MQTT:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/WeatherStation2MQTT_jar</output-path>
+    <root id="archive" name="WeatherStation2MQTT.jar">
+      <element id="module-output" name="WeatherStation2MQTT" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/jackson-core-2.1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/hawtbuf-1.11.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/hawtdispatch-1.22.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/jackson-annotations-2.11.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/RSNetDevice-2.2.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/jackson-databind-2.1.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/mqtt-client-1.16.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/hawtdispatch-transport-1.22.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/libs/commons-cli-1.4.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
