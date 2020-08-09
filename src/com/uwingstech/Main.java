@@ -149,8 +149,10 @@ public class Main extends TimerTask {
         ws.Temperature = 25.0;
         ws.Lux = 100;
         //ws.WindDirection = Direction.NorthEast;
-        ws.WindDirection = Direction.getDirection(2);
-
+        ws.Humidity = 50.0 + (Math.random() * 50);
+        ws.Pripitation = 0.0f; // no rainy
+        ws.WindSpeed = (Math.random() * 20);
+        ws.WindDirection = Direction.getDirection((int)(Math.random() * 7));
 
         CommandLineParser  cmdParser = new DefaultParser();
         try {
