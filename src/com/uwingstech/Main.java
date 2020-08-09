@@ -5,10 +5,19 @@ import com.jnrsmcu.sdk.netdevice.*;
 import org.apache.commons.cli.*;
 import org.fusesource.mqtt.client.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+
+import java.util.Map;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 enum Direction {
     North("North", "N", 0),
@@ -58,13 +67,44 @@ enum Direction {
         }
         return null;
     }
-
 }
+
+// for debugging original from com.jnrsmcu.sdk.netdevice.BinarySerializeOpt
+//class BinarySerializeOpt<T> {
+//    BinarySerializeOpt() {
+//    }
+//    protected T deserialize(String fileName) {
+//        try {
+//            FileInputStream fileIn = new FileInputStream(fileName);
+//            ObjectInputStream in = new ObjectInputStream(fileIn);
+//            T res = (T)in.readObject();
+//            in.close();
+//            fileIn.close();
+//            return res;
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return null;
+//        }
+//    }
+//
+//    protected boolean serialize(T cls, String fileName) {
+//        try {
+//            FileOutputStream fileOut = new FileOutputStream(fileName);
+//            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+//            out.writeObject(cls);
+//            out.close();
+//            fileOut.close();
+//            return true;
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return false;
+//        }
+//    }
+//}
 
 class WeatherStation {
     // 8 direction : { North, NorthEast, East, SouthEast,
     //                 South, SouthWest, West, NorthWest }
-
     public Direction  WindDirection;
     public double WindSpeed;
     public double Pripitation;
@@ -75,8 +115,10 @@ class WeatherStation {
 }
 
 public class Main {
+    static final URL mainUrl = Main.class.getProtectionDomain().getCodeSource().getLocation();
     static WeatherStation ws;
     static boolean bMQTTConnection = false;
+
     public static void main(String[] args) throws IOException,
             InterruptedException,
             MQTTException, URISyntaxException {
@@ -87,6 +129,17 @@ public class Main {
         options.addOption( "w", true, "Weather Station");
         String strBrokerHost = "";
         String strPortBroker = "1883";
+
+        // load default param.dat from launch place
+        String filePath = URLDecoder.decode(mainUrl.getPath(), "utf-8");
+        System.out.println("Program launch from: " + filePath);
+        if (filePath.endsWith(".jar")) {
+            filePath = filePath.substring(0, filePath.lastIndexOf("/") + 1);
+        }
+        filePath += "param.dat";
+        //Map<Integer, ParamItem> paramCache =  new HashMap();
+        //paramCache = (Map)(new BinarySerializeOpt()).deserialize(filePath);
+
         ws = new WeatherStation();
         ws.Temperature = 25.0;
         ws.Lux = 100;
@@ -106,7 +159,8 @@ public class Main {
         }
 
         System.out.println("Initial RSServer(Weather Station)");
-        RSServer rsServer = RSServer.Initiate(2404);// 初始化
+        // initial server and load parameters from Binary Serial file
+        RSServer rsServer = RSServer.Initiate(2404, filePath);// initial
 
 
         /*
