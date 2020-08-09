@@ -1,5 +1,6 @@
 package com.uwingstech;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jnrsmcu.sdk.netdevice.*;
 import org.apache.commons.cli.*;
@@ -10,10 +11,8 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
+import java.util.*;
 
-import java.util.Map;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
@@ -114,17 +113,24 @@ class WeatherStation {
     public Date TimeStamp;
 }
 
-public class Main {
+public class Main extends TimerTask {
     static final URL mainUrl = Main.class.getProtectionDomain().getCodeSource().getLocation();
-    static WeatherStation ws;
+    static WeatherStation ws = new WeatherStation();
     static boolean bMQTTConnection = false;
+    static Timer timer = new Timer();
+    static MQTT mqtt = new MQTT();
+    static CallbackConnection connection;
+    static ObjectMapper om = new ObjectMapper();
+    static String mqttTopic;
 
     public static void main(String[] args) throws IOException,
             InterruptedException,
             MQTTException, URISyntaxException {
-        ObjectMapper om = new ObjectMapper();
+
         Options options = new Options();
         options.addRequiredOption( "b", "broker", true, "MQTT Broker");
+        options.addRequiredOption("t", "topic", true, "MQTT Message Topic");
+
         options.addOption("p", true, "port of MQTT Broker");
         options.addOption( "w", true, "Weather Station");
         String strBrokerHost = "";
@@ -140,19 +146,18 @@ public class Main {
         //Map<Integer, ParamItem> paramCache =  new HashMap();
         //paramCache = (Map)(new BinarySerializeOpt()).deserialize(filePath);
 
-        ws = new WeatherStation();
         ws.Temperature = 25.0;
         ws.Lux = 100;
         //ws.WindDirection = Direction.NorthEast;
         ws.WindDirection = Direction.getDirection(2);
-        ws.TimeStamp = new Date();
-        System.out.println(om.writeValueAsString(ws));
+
 
         CommandLineParser  cmdParser = new DefaultParser();
         try {
             CommandLine cmd = cmdParser.parse(options, args);
             strBrokerHost = cmd.getOptionValue("b");
             strPortBroker = cmd.getOptionValue("p", "1883");
+            mqttTopic = cmd.getOptionValue("t");
         } catch (ParseException e) {
             System.out.println("Failed input arguments:\n\t" + e.getMessage());
             return;
@@ -298,10 +303,10 @@ public class Main {
         */
         int port = Integer.parseInt(strPortBroker);
         System.out.println("Initial Mqtt client");
-        MQTT mqtt = new MQTT();
+        System.out.println("connection to " + strBrokerHost + ", port:" + port);
         mqtt.setHost(strBrokerHost, port);
         mqtt.setKeepAlive((short)10);
-        final CallbackConnection connection = mqtt.callbackConnection();
+        connection = mqtt.callbackConnection();
 /*
         connection.listener(new Listener() {
             @Override
@@ -337,6 +342,7 @@ public class Main {
                 System.out.println("Connected/Callback MQTT Broker success!");
 
                 bMQTTConnection = true;
+                timer.schedule(new Main(), 500, (60 * 1000)); // run publish message, 60sec
 
                 // Subscribe to a topic
                 /*
@@ -352,16 +358,19 @@ public class Main {
                 */
 
                 // Send a message to a topic
+                /*
                 connection.publish("foo", "Hello".getBytes(), QoS.AT_LEAST_ONCE, false, new Callback<Void>() {
                     public void onSuccess(Void v) {
-                        // the pubish operation completed successfully.
+                        // the publish operation completed successfully.
                         System.out.println("publish on Success!");
                     }
+
                     public void onFailure(Throwable value) {
                         // connection.close(null); // publish failed.
                         System.out.println("publish  MQTT topic failed!");
                     }
                 });
+                */
 
                 /*
                 // To disconnect..
@@ -381,5 +390,27 @@ public class Main {
         System.out.println("Connection RSServer(Weather Station)");
         rsServer.start();
 
+    }
+
+    @Override
+    public void run() {
+        try {
+            ws.TimeStamp = new Date();
+            String payload = om.writeValueAsString(ws);
+            connection.publish(mqttTopic, payload.getBytes(), QoS.AT_LEAST_ONCE, false,
+                    new Callback<Void>() {
+                public void onSuccess(Void v) {
+                    // the publish operation completed successfully.
+                    System.out.println("publish to " + mqttTopic + " : " + payload );
+
+                }
+                public void onFailure(Throwable value) {
+                    // connection.close(null); // publish failed.
+                    System.out.println("publish  MQTT topic failed!");
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
