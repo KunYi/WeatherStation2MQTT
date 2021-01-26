@@ -2,6 +2,7 @@
   <configuration default="false" name="Main" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="com.uwingstech.Main" />
     <module name="WeatherStation2MQTT" />
+    <option name="PROGRAM_PARAMETERS" value="-b 10.50.19.11 -t &quot;none/FORMOSA00001/WeatherStation01/rx&quot;" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="com.uwingstech.*" />

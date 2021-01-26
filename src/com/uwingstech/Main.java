@@ -18,15 +18,34 @@ import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+final class Debug {
+    //set to false to allow compiler to identify and eliminate
+    //unreachable code
+    public static final boolean ON = true;
+    public static final boolean Debug = false;
+    public static final boolean Info = false;
+}
+
 enum Direction {
+    South("South", "S", 0),
+    SouthWest("SouthWest", "SE", 1),
+    West("West", "W", 2),
+    NorthWest("NorthWest", "NW", 3),
+    North("North", "N", 4),
+    NorthEast("NorthEast", "NE", 5),
+    East("East", "E", 6),
+    SouthEast("SouthEast", "SE", 7);
+    /*
     North("North", "N", 0),
     NorthEast("NorthEast", "NE", 1),
     East("East", "E", 2),
-    SouthEast("SouthEast", "SE", 3),
+    SouthEast("SouthEast", "SE", 3);
+
     South("South", "S", 4),
     SouthWest("SouthWest", "SE", 5),
     West("West", "W", 6),
-    NorthWest("NorthWest", "NW", 7);
+    NorthWest("NorthWest", "NW", 7),
+      */
 
     private final String name;
     private final String shortName;
@@ -106,11 +125,12 @@ class WeatherStation {
     //                 South, SouthWest, West, NorthWest }
     public Direction  WindDirection;
     public double WindSpeed;
-    public double Pripitation;
+    public double Precipitation;
     public double Temperature;
     public double Humidity;
     public double Lux;
     public Date TimeStamp;
+    public Date recordTimeStamp;
 }
 
 public class Main extends TimerTask {
@@ -122,6 +142,42 @@ public class Main extends TimerTask {
     static CallbackConnection connection;
     static ObjectMapper om = new ObjectMapper();
     static String mqttTopic;
+
+    static void convNodeData(NodeData nd)
+    {
+        switch(nd.getNodeId()) {
+            case 1:
+                //float windforce = nd.getTem() * 10;
+                float windspeed = nd.getHum();
+                ws.WindSpeed = windspeed;
+                ws.recordTimeStamp = nd.getRecordTime();
+                break;
+            case 2:
+                //int windirection = (nd.getHum() * 10);
+                ws.WindDirection = Direction.getDirection((int)(nd.getHum()*10));
+                ws.recordTimeStamp = nd.getRecordTime();
+                break;
+            case 6:
+                ws.Temperature = nd.getTem();
+                ws.Humidity = nd.getHum();
+                ws.recordTimeStamp = nd.getRecordTime();
+                if (Debug.Debug) {
+                    nd.getFloatValue();
+                    nd.getSignedInt32Value();
+                    nd.getUnSignedInt32Value();
+                }
+                break;
+            case 10:
+                //ws.Lux = Math.abs(nd.getTem() * 10);
+                ws.Lux = nd.getUnSignedInt32Value() * 1.0f;
+                ws.recordTimeStamp = nd.getRecordTime();
+                break;
+            case 11:
+                ws.Precipitation = nd.getHum() * 5;
+                ws.recordTimeStamp = nd.getRecordTime();
+                break;
+        }
+    }
 
     public static void main(String[] args) throws IOException,
             InterruptedException,
@@ -147,10 +203,10 @@ public class Main extends TimerTask {
         //paramCache = (Map)(new BinarySerializeOpt()).deserialize(filePath);
 
         ws.Temperature = 25.0;
-        ws.Lux = 100;
+        ws.Lux = 0;
         //ws.WindDirection = Direction.NorthEast;
         ws.Humidity = 50.0 + (Math.random() * 50);
-        ws.Pripitation = 0.0f; // no rainy
+        ws.Precipitation = 0.0f; // no rainy
         ws.WindSpeed = (Math.random() * 20);
         ws.WindDirection = Direction.getDirection((int)(Math.random() * 7));
 
@@ -175,7 +231,6 @@ public class Main extends TimerTask {
          System.out.println("args:" + arg);
         }
         */
-
 
         rsServer.addDataListener(new IDataListener() {// 添加监听
             @Override
@@ -202,19 +257,27 @@ public class Main extends TimerTask {
                             + "\tNodeId:" + nd.getNodeId() + "\tTemperature:" + nd.getTem()
                             + "\tHumidity:" + nd.getHum() + "\tTime:" + str);
                 }
+                for (NodeData nd : data.getNodeList()) {
+                    convNodeData(nd);
+                }
 
             }
 
             @Override
             public void receiveRealtimeData(RealTimeData data) {// 实时数据接收处理
+                // read all data
                 // 遍历节点数据。数据包括网络设备的数据以及各个节点数据。温湿度数据存放在节点数据中
                 for (NodeData nd : data.getNodeList()) {
-                    System.out.println("RealTime->DeviceId:" + data.getDeviceId()
-                            + "\tNodeId:" + nd.getNodeId() + "\tTemperature:" + nd.getTem()
-                            + "\tHumidity:" + nd.getHum() + "\t经度:" + data.getLng()
-                            + "\t纬度:" + data.getLat() + "\tCoordinateType:"
-                            + data.getCoordinateType() + "\t继电器状态:"
-                            + data.getRelayStatus());
+                    convNodeData(nd);
+                    if (Debug.Debug) {
+                        System.out.println("RealTime->DeviceId:" + data.getDeviceId()
+                                + "\tNodeId:" + nd.getNodeId() + "\tTemperature:" + nd.getTem()
+                                + "\tHumidity:" + nd.getHum() + "\t经度:" + data.getLng()
+                                + "\t纬度:" + data.getLat() + "\tCoordinateType:"
+                                + data.getCoordinateType() + "\t继电器状态:"
+                                + data.getRelayStatus());
+
+                    }
 
                 }
 
@@ -344,7 +407,7 @@ public class Main extends TimerTask {
                 System.out.println("Connected/Callback MQTT Broker success!");
 
                 bMQTTConnection = true;
-                timer.schedule(new Main(), 500, (60 * 1000)); // run publish message, 60sec
+                timer.schedule(new Main(), 500, (30 * 1000)); // run publish message, 60sec
 
                 // Subscribe to a topic
                 /*
@@ -398,6 +461,9 @@ public class Main extends TimerTask {
     public void run() {
         try {
             ws.TimeStamp = new Date();
+            if (ws.recordTimeStamp == null)
+                ws.recordTimeStamp = ws.TimeStamp;
+
             String payload = om.writeValueAsString(ws);
             connection.publish(mqttTopic, payload.getBytes(), QoS.AT_LEAST_ONCE, false,
                     new Callback<Void>() {
